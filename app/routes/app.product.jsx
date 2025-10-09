@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const APP_DOMAIN = "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/";
+const SHOPIFY_APP_URL = "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/";
 
 export default function ProductsRoute() {
   const [products, setProducts] = useState([]);
