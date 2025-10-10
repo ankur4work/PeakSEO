@@ -9,12 +9,14 @@ export default function SeoChecker() {
 
   useEffect(() => {
     // 🏪 Auto-detect store domain from the current URL
+      const url = new URL(request.url);
+  const shop = url.searchParams.get("shop") || "";
     const host = window.location.hostname;
     if (host.includes("myshopify.com")) {
       setStoreDomain(host);
     } else {
       // fallback (you can replace this with your default store)
-      setStoreDomain("example.myshopify.com");
+      setStoreDomain(`${shop}`);
     }
   }, []);
 
