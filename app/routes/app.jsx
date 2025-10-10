@@ -6,23 +6,29 @@ import { authenticate } from "../shopify.server";
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
 
-  // eslint-disable-next-line no-undef
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  // Get shop from URL
+  const url = new URL(request.url);
+  const shop = url.searchParams.get("shop") || "";
+
+  return { 
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    shop: shop
+  };
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData();
+  const { apiKey, shop } = useLoaderData();
 
   return (
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
-        {/* <s-link href="/app">Home</s-link>
-        <s-link href="/app/additional">additional page</s-link> */}
-        <s-link href="/app/seo">Seo</s-link>
-        {/* <s-link href="/app/newproduct">New-product-Page</s-link> */}
-        <s-link href="/app/product">Product-Page</s-link>
+        {/* <s-link href={`/app?shop=${shop}`}>Home</s-link>
+        <s-link href={`/app/additional?shop=${shop}`}>additional page</s-link> */}
+        <s-link href={`/app/seo?shop=${shop}`}>Seo</s-link>
+        {/* <s-link href={`/app/newproduct?shop=${shop}`}>New-product-Page</s-link> */}
+        <s-link href={`/app/product?shop=${shop}`}>Product-Page</s-link>
       </s-app-nav>
-      <Outlet />
+      <Outlet context={{ shop }} />
     </AppProvider>
   );
 }
