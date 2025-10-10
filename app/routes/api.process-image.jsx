@@ -1,9 +1,9 @@
 import { json } from "@remix-run/node";
 import fetch from "node-fetch";
-import FormData from "form-data";
 import sharp from "sharp";
 import db from "../db.server";
 import path from "path";
+import { Blob } from "buffer";
 
 const SHOPIFY_API_VERSION = "2024-10";
 
@@ -142,16 +142,15 @@ export const action = async ({ request }) => {
       uploadFormData.append(param.name, param.value);
     });
     
+    // Create a Blob from the buffer
+    const blob = new Blob([processedBuffer], { type: mimeType });
+    
     // Add the file last
-    uploadFormData.append("file", processedBuffer, {
-      filename: filename,
-      contentType: mimeType,
-    });
+    uploadFormData.append("file", blob, filename);
 
     const uploadResponse = await fetch(stagedTarget.url, {
       method: "POST",
       body: uploadFormData,
-      headers: uploadFormData.getHeaders(),
     });
 
     if (!uploadResponse.ok) {
