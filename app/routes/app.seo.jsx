@@ -60,30 +60,33 @@ export default function SeoChecker() {
     }
   };
 
-  const getBarColor = (score) => score >= 90 ? "#28a745" : score >= 50 ? "#ffc107" : "#dc3545";
+  const getBarColor = (score) =>
+    score >= 90 ? "#28a745" : score >= 50 ? "#ffc107" : "#dc3545";
 
   return (
     <div style={{
-      maxWidth: "900px",
+      maxWidth: "1000px",
       margin: "3rem auto",
       fontFamily: "'Poppins', sans-serif",
-      padding: "2rem"
+      padding: "2rem",
+      color: "#1a1a1a"
     }}>
-      <h1 style={{
+      {/* Header */}
+      <div style={{
         textAlign: "center",
-        marginBottom: "3rem",
-        fontSize: "2.5rem",
-        color: "#1a1a1a",
-        fontWeight: "700"
+        marginBottom: "3rem"
       }}>
-        🔍 Shopify SEO Dashboard
-      </h1>
+        <h1 style={{ fontSize: "2.5rem", fontWeight: "700" }}>🔍 Shopify SEO Dashboard</h1>
+        <p style={{ color: "#555", marginTop: "0.5rem" }}>
+          Analyze your store SEO and get a preview screenshot
+        </p>
+      </div>
 
       {/* Input Card */}
       <div style={{
         background: "linear-gradient(145deg, #f0f4ff, #d9e4ff)",
         borderRadius: "15px",
-        padding: "1.5rem",
+        padding: "2rem",
         boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
         marginBottom: "2rem",
         display: "flex",
@@ -102,9 +105,8 @@ export default function SeoChecker() {
             border: "none",
             backgroundColor: "#e6ecff",
             fontSize: "1rem",
-            color: "#333",
-            cursor: "not-allowed",
-            fontWeight: "500"
+            fontWeight: "500",
+            cursor: "not-allowed"
           }}
         />
         <button
@@ -148,7 +150,7 @@ export default function SeoChecker() {
       {scores && (
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           gap: "1.5rem",
           marginBottom: "2rem"
         }}>
@@ -159,37 +161,41 @@ export default function SeoChecker() {
               <div key={key} style={{
                 backgroundColor: "#ffffff",
                 borderRadius: "15px",
-                padding: "1rem",
+                padding: "1.5rem",
                 boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
                 display: "flex",
                 flexDirection: "column",
-                gap: "0.8rem",
-                transition: "transform 0.3s",
+                gap: "1rem",
+                transition: "transform 0.3s, box-shadow 0.3s",
               }}
-                onMouseEnter={e => e.currentTarget.style.transform = "translateY(-5px)"}
-                onMouseLeave={e => e.currentTarget.style.transform = "translateY(0px)"}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = "translateY(-5px)";
+                  e.currentTarget.style.boxShadow = "0 12px 25px rgba(0,0,0,0.15)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.08)";
+                }}
               >
-                <div style={{ fontSize: "1.6rem", textAlign: "center" }}>{emoji}</div>
+                <div style={{ fontSize: "1.8rem", textAlign: "center" }}>{emoji}</div>
                 <div style={{ textTransform: "capitalize", fontWeight: "600", textAlign: "center", color: "#333" }}>
                   {key === "best-practices" ? "Best Practices" : key.replace("-", " ")}
                 </div>
-                <div style={{ fontSize: "1.3rem", fontWeight: "700", color: color, textAlign: "center" }}>
+                <div style={{ fontSize: "1.4rem", fontWeight: "700", color: color, textAlign: "center" }}>
                   {value}%
                 </div>
-                {/* Animated progress bar */}
                 <div style={{
-                  height: "8px",
+                  height: "10px",
                   width: "100%",
                   backgroundColor: "#e0e0e0",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-                  marginTop: "0.5rem"
+                  borderRadius: "5px",
+                  overflow: "hidden"
                 }}>
                   <div style={{
                     height: "100%",
                     width: `${value}%`,
                     backgroundColor: color,
-                    transition: "width 1s ease-in-out"
+                    transition: "width 1.2s ease-in-out"
                   }} />
                 </div>
               </div>
@@ -202,15 +208,15 @@ export default function SeoChecker() {
       {screenshot && (
         <div style={{
           backgroundColor: "#fff",
-          padding: "1.5rem",
+          padding: "2rem",
           borderRadius: "15px",
           boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
           textAlign: "center",
-          transition: "0.3s all"
+          transition: "0.3s all",
+          overflow: "hidden"
         }}>
           <h2 style={{ marginBottom: "1rem", color: "#333", fontWeight: "600" }}>📸 Screenshot Preview</h2>
           <div style={{
-            overflow: "hidden",
             borderRadius: "15px",
             border: "1px solid #e0e0e0",
             boxShadow: "0 4px 15px rgba(0,0,0,0.05)",
@@ -218,7 +224,7 @@ export default function SeoChecker() {
             transition: "transform 0.3s",
           }}
             onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"} 
+            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
           >
             <img
               src={screenshot}
