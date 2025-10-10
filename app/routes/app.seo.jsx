@@ -60,35 +60,37 @@ export default function SeoChecker() {
     }
   };
 
+  const getBarColor = (score) => score >= 90 ? "#28a745" : score >= 50 ? "#ffc107" : "#dc3545";
+
   return (
     <div style={{
-      maxWidth: "800px",
+      maxWidth: "900px",
       margin: "3rem auto",
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      fontFamily: "'Poppins', sans-serif",
       padding: "2rem"
     }}>
       <h1 style={{
         textAlign: "center",
-        marginBottom: "2.5rem",
-        fontSize: "2.2rem",
-        color: "#1c1c1c",
-        letterSpacing: "1px"
+        marginBottom: "3rem",
+        fontSize: "2.5rem",
+        color: "#1a1a1a",
+        fontWeight: "700"
       }}>
-        🔍 Shopify SEO Checker & Screenshot
+        🔍 Shopify SEO Dashboard
       </h1>
 
       {/* Input Card */}
       <div style={{
-        backgroundColor: "#ffffff",
-        borderRadius: "12px",
+        background: "linear-gradient(145deg, #f0f4ff, #d9e4ff)",
+        borderRadius: "15px",
         padding: "1.5rem",
-        boxShadow: "0 6px 18px rgba(0,0,0,0.1)",
+        boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
         marginBottom: "2rem",
         display: "flex",
         flexDirection: "column",
         gap: "1rem"
       }}>
-        <label style={{ fontWeight: "600", color: "#333" }}>Store Domain</label>
+        <label style={{ fontWeight: "600", color: "#333", fontSize: "1rem" }}>Store Domain</label>
         <input
           type="text"
           value={storeDomain}
@@ -96,12 +98,13 @@ export default function SeoChecker() {
           style={{
             width: "100%",
             padding: "0.75rem 1rem",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            backgroundColor: "#f9f9f9",
+            borderRadius: "10px",
+            border: "none",
+            backgroundColor: "#e6ecff",
             fontSize: "1rem",
-            color: "#555",
-            cursor: "not-allowed"
+            color: "#333",
+            cursor: "not-allowed",
+            fontWeight: "500"
           }}
         />
         <button
@@ -110,28 +113,29 @@ export default function SeoChecker() {
           style={{
             padding: "0.75rem",
             fontSize: "1rem",
-            borderRadius: "8px",
+            borderRadius: "10px",
             border: "none",
             fontWeight: "600",
             cursor: loading ? "not-allowed" : "pointer",
             background: loading
               ? "#6c757d"
-              : "linear-gradient(90deg, #007bff, #0056b3)",
+              : "linear-gradient(90deg, #4facfe, #00f2fe)",
             color: "#fff",
-            transition: "all 0.3s ease"
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            transition: "0.3s all",
           }}
         >
-          {loading ? "⏳ Checking..." : "✅ Check SEO & Screenshot"}
+          {loading ? "⏳ Checking..." : "✅ Analyze SEO"}
         </button>
       </div>
 
       {/* Error */}
       {error && (
         <div style={{
-          backgroundColor: "#ffe0e0",
-          color: "#b00020",
+          backgroundColor: "#ffe5e5",
+          color: "#c70000",
           padding: "1rem 1.5rem",
-          borderRadius: "8px",
+          borderRadius: "10px",
           marginBottom: "2rem",
           fontWeight: "500",
           boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
@@ -140,44 +144,53 @@ export default function SeoChecker() {
         </div>
       )}
 
-      {/* Scores */}
+      {/* Scores Grid */}
       {scores && (
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: "1.5rem",
           marginBottom: "2rem"
         }}>
           {Object.entries(scores).map(([key, value]) => {
-            const color = value >= 90 ? "#28a745" : value >= 50 ? "#ffc107" : "#dc3545";
+            const color = getBarColor(value);
             const emoji = value >= 90 ? "🟢" : value >= 50 ? "🟡" : "🔴";
             return (
               <div key={key} style={{
-                backgroundColor: "#fff",
-                borderRadius: "12px",
+                backgroundColor: "#ffffff",
+                borderRadius: "15px",
                 padding: "1rem",
-                boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
                 display: "flex",
                 flexDirection: "column",
-                alignItems: "center",
-                textAlign: "center"
-              }}>
-                <div style={{ fontSize: "1.8rem" }}>{emoji}</div>
-                <div style={{
-                  fontSize: "1rem",
-                  fontWeight: "600",
-                  color: "#333",
-                  marginBottom: "0.5rem",
-                  textTransform: "capitalize"
-                }}>
+                gap: "0.8rem",
+                transition: "transform 0.3s",
+              }}
+                onMouseEnter={e => e.currentTarget.style.transform = "translateY(-5px)"}
+                onMouseLeave={e => e.currentTarget.style.transform = "translateY(0px)"}
+              >
+                <div style={{ fontSize: "1.6rem", textAlign: "center" }}>{emoji}</div>
+                <div style={{ textTransform: "capitalize", fontWeight: "600", textAlign: "center", color: "#333" }}>
                   {key === "best-practices" ? "Best Practices" : key.replace("-", " ")}
                 </div>
-                <div style={{
-                  fontSize: "1.5rem",
-                  fontWeight: "700",
-                  color: color
-                }}>
+                <div style={{ fontSize: "1.3rem", fontWeight: "700", color: color, textAlign: "center" }}>
                   {value}%
+                </div>
+                {/* Animated progress bar */}
+                <div style={{
+                  height: "8px",
+                  width: "100%",
+                  backgroundColor: "#e0e0e0",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                  marginTop: "0.5rem"
+                }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${value}%`,
+                    backgroundColor: color,
+                    transition: "width 1s ease-in-out"
+                  }} />
                 </div>
               </div>
             );
@@ -190,21 +203,27 @@ export default function SeoChecker() {
         <div style={{
           backgroundColor: "#fff",
           padding: "1.5rem",
-          borderRadius: "12px",
-          boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-          textAlign: "center"
+          borderRadius: "15px",
+          boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+          textAlign: "center",
+          transition: "0.3s all"
         }}>
-          <h2 style={{ marginBottom: "1rem", color: "#333" }}>📸 Screenshot Preview</h2>
+          <h2 style={{ marginBottom: "1rem", color: "#333", fontWeight: "600" }}>📸 Screenshot Preview</h2>
           <div style={{
             overflow: "hidden",
-            borderRadius: "12px",
+            borderRadius: "15px",
             border: "1px solid #e0e0e0",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
-          }}>
+            boxShadow: "0 4px 15px rgba(0,0,0,0.05)",
+            display: "inline-block",
+            transition: "transform 0.3s",
+          }}
+            onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"} 
+          >
             <img
               src={screenshot}
               alt="Website Screenshot"
-              style={{ width: "100%", display: "block" }}
+              style={{ width: "100%", display: "block", borderRadius: "15px" }}
               onError={(e) => {
                 e.target.parentElement.innerHTML = "<p style='padding: 2rem; color: #666;'>❌ Screenshot could not be loaded</p>";
               }}
