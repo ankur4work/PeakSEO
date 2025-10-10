@@ -7,18 +7,29 @@ export default function SeoChecker() {
   const [error, setError] = useState("");
   const [screenshot, setScreenshot] = useState("");
 
-  useEffect(() => {
-    // 🏪 Auto-detect store domain from the current URL
-      const url = new URL(request.url);
-  const shop = url.searchParams.get("shop") || "";
+
+useEffect(() => {
+  try {
+    // 1️⃣ Try to get "shop" from URL query parameters
+    const params = new URLSearchParams(window.location.search);
+    const shopParam = params.get("shop");
+
+    // 2️⃣ If not present, fallback to current hostname
     const host = window.location.hostname;
-    if (host.includes("myshopify.com")) {
+
+    if (shopParam) {
+      setStoreDomain(shopParam);
+    } else if (host.includes("myshopify.com")) {
       setStoreDomain(host);
     } else {
-      // fallback (you can replace this with your default store)
-      setStoreDomain(`${shop}`);
+      setStoreDomain("example.myshopify.com"); // fallback default
     }
-  }, []);
+  } catch (err) {
+    console.error("Failed to detect Shopify store domain:", err);
+    setStoreDomain("example.myshopify.com"); // fallback default
+  }
+}, []);
+
 
   const checkSeoScore = async () => {
     setLoading(true);
