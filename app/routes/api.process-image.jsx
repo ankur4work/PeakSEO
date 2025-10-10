@@ -56,19 +56,35 @@ export const action = async ({ request }) => {
         filename = `compressed-${Date.now()}.jpg`;
       }
     } else if (type === "watermark") {
+      // Get original image dimensions
+      const imageMetadata = await sharp(imageBuffer).metadata();
+      const imageWidth = imageMetadata.width;
+      const imageHeight = imageMetadata.height;
+
+      // Calculate watermark size (20% of image width, max 300px)
+      const watermarkMaxWidth = Math.min(Math.floor(imageWidth * 0.2), 300);
+
       let watermarkBuffer;
       if (watermarkFile && typeof watermarkFile === "object") {
-        watermarkBuffer = Buffer.from(await watermarkFile.arrayBuffer());
+        const uploadedWatermark = Buffer.from(await watermarkFile.arrayBuffer());
+        watermarkBuffer = await sharp(uploadedWatermark)
+          .resize(watermarkMaxWidth, null, { fit: 'inside', withoutEnlargement: true })
+          .png()
+          .toBuffer();
       } else {
         const defaultWatermarkPath = path.resolve("public/watermark.png");
         if (fs.existsSync(defaultWatermarkPath)) {
-          watermarkBuffer = await sharp(defaultWatermarkPath).resize(100).png().toBuffer();
+          watermarkBuffer = await sharp(defaultWatermarkPath)
+            .resize(watermarkMaxWidth, null, { fit: 'inside', withoutEnlargement: true })
+            .png()
+            .toBuffer();
         } else {
           // Create a simple text watermark if file doesn't exist
+          const watermarkHeight = Math.floor(watermarkMaxWidth / 4);
           watermarkBuffer = await sharp({
             create: {
-              width: 200,
-              height: 50,
+              width: watermarkMaxWidth,
+              height: watermarkHeight,
               channels: 4,
               background: { r: 255, g: 255, b: 255, alpha: 0.5 }
             }
@@ -78,8 +94,18 @@ export const action = async ({ request }) => {
         }
       }
 
+      // Position watermark at bottom-right corner with 10px padding
+      const watermarkMetadata = await sharp(watermarkBuffer).metadata();
+      const left = imageWidth - watermarkMetadata.width - 10;
+      const top = imageHeight - watermarkMetadata.height - 10;
+
       processedBuffer = await sharp(imageBuffer)
-        .composite([{ input: watermarkBuffer, top: 10, left: 10 }])
+        .composite([{ 
+          input: watermarkBuffer, 
+          top: Math.max(10, top), 
+          left: Math.max(10, left),
+          gravity: 'southeast'
+        }])
         .png()
         .toBuffer();
       mimeType = "image/png";
