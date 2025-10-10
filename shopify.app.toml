@@ -1,27 +1,40 @@
-# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
-
+name = "SeoMate"
 client_id = "c827727c499d170e74b3bd6f0e69ff3d"
-name = "beneficial-seo"
 application_url = "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/"
 embedded = true
 
-[build]
-automatically_update_urls_on_dev = true
-
-[webhooks]
-api_version = "2026-01"
-
-  [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
-
-  [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
-  uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "write_products,read_products,write_files,read_files"
+
+[access.admin]
+direct_api_mode = "online"
 
 [auth]
-redirect_urls = [ "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com//api/auth" ]
+redirect_urls = [
+  "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/auth/callback",
+  "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/auth/shopify/callback",
+  "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2025-04"
+
+[[webhooks.subscriptions]]
+topics = [ "app/uninstalled" ]
+compliance_topics = [ "customers/redact", "customers/data_request", "shop/redact" ]
+uri = "https://hkdk.events/wosrrl2b1hj10n"
+
+[app_proxy]
+url =  "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/api/proxy"
+subpath = "store-pickup"
+prefix = "apps"
+
+[pos]
+embedded = false
+
+[app_preferences]
+url = "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/preferences"
+
+[build]
+automatically_update_urls_on_dev = false
