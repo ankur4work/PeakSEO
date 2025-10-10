@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function SeoChecker() {
   const [url, setUrl] = useState("");
@@ -7,17 +7,24 @@ export default function SeoChecker() {
   const [error, setError] = useState("");
   const [screenshot, setScreenshot] = useState("");
 
+  useEffect(() => {
+    // ✅ Auto-detect domain from current URL
+    const currentHost = window.location.hostname;
+    setUrl(currentHost);
+  }, []);
+
   const checkSeoScore = async () => {
+    if (!url) return;
+
     setLoading(true);
     setError("");
     setScores(null);
     setScreenshot("");
 
-    const apiKey = "AIzaSyBD53zUf_82qIn79_Na8J8yibhS0Ch8AWk";
+    const apiKey = "YOUR_GOOGLE_API_KEY"; // 🔐 replace with your actual API key
     const cleanUrl = url.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
 
     try {
-      // Fetch SEO data and screenshot from Google Pagespeed
       const categories = ["performance", "accessibility", "best-practices", "seo"];
       const seoUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://${cleanUrl}&category=${categories.join("&category=")}&screenshot=true&key=${apiKey}`;
 
@@ -30,7 +37,7 @@ export default function SeoChecker() {
         return;
       }
 
-      // Extract SEO Scores
+      // ✅ Extract SEO Scores
       const categoriesData = data.lighthouseResult.categories;
       const extractedScores = {};
       categories.forEach((cat) => {
@@ -39,16 +46,14 @@ export default function SeoChecker() {
 
       setScores(extractedScores);
 
-      // Extract Screenshot from Lighthouse
+      // 📸 Extract Screenshot
       const screenshotData = data.lighthouseResult?.audits?.["final-screenshot"]?.details?.data;
-      const fullPageScreenshot = data.lighthouseResult?.audits?.["screenshot-thumbnails"]?.details?.items?.[0]?.data;
-      
+      const fallbackShot = data.lighthouseResult?.audits?.["screenshot-thumbnails"]?.details?.items?.[0]?.data;
+
       if (screenshotData) {
         setScreenshot(screenshotData);
-      } else if (fullPageScreenshot) {
-        setScreenshot(fullPageScreenshot);
-      } else {
-        console.log("No screenshot available from PageSpeed");
+      } else if (fallbackShot) {
+        setScreenshot(fallbackShot);
       }
 
       setLoading(false);
@@ -65,12 +70,11 @@ export default function SeoChecker() {
         🔍 SEO Checker & Screenshot
       </h1>
 
+      {/* Fixed input field */}
       <input
         type="text"
-        placeholder="Enter Shopify store URL (example.myshopify.com)"
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        onKeyPress={(e) => e.key === "Enter" && checkSeoScore()}
+        disabled
         style={{
           width: "100%",
           padding: "0.75rem",
@@ -78,11 +82,13 @@ export default function SeoChecker() {
           borderRadius: "5px",
           border: "1px solid #ccc",
           fontSize: "1rem",
+          backgroundColor: "#f1f1f1",
+          color: "#555",
         }}
       />
       <button
         onClick={checkSeoScore}
-        disabled={loading}
+        disabled={loading || !url}
         style={{
           width: "100%",
           padding: "0.75rem",
