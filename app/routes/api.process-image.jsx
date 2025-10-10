@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import sharp from "sharp";
 import db from "../db.server";
 import path from "path";
+import fs from "fs";
 
 const SHOPIFY_API_VERSION = "2024-10";
 
@@ -36,7 +37,6 @@ export const action = async ({ request }) => {
     const isPng = originalExt === 'png';
 
     let processedBuffer;
-    let fileExt = "";
     let mimeType = "";
     let filename = "";
 
@@ -46,16 +46,14 @@ export const action = async ({ request }) => {
         processedBuffer = await sharp(imageBuffer)
           .png({ quality: 80, compressionLevel: 9 })
           .toBuffer();
-        fileExt = "png";
         mimeType = "image/png";
         filename = `compressed-${Date.now()}.png`;
       } else {
         processedBuffer = await sharp(imageBuffer)
           .jpeg({ quality: 60, mozjpeg: true })
           .toBuffer();
-        fileExt = "jpeg";
         mimeType = "image/jpeg";
-        filename = `compressed-${Date.now()}.jpeg`;
+        filename = `compressed-${Date.now()}.jpg`;
       }
     } else if (type === "watermark") {
       let watermarkBuffer;
@@ -63,27 +61,140 @@ export const action = async ({ request }) => {
         watermarkBuffer = Buffer.from(await watermarkFile.arrayBuffer());
       } else {
         const defaultWatermarkPath = path.resolve("public/watermark.png");
-        watermarkBuffer = await sharp(defaultWatermarkPath).resize(100).png().toBuffer();
+        if (fs.existsSync(defaultWatermarkPath)) {
+          watermarkBuffer = await sharp(defaultWatermarkPath).resize(100).png().toBuffer();
+        } else {
+          // Create a simple text watermark if file doesn't exist
+          watermarkBuffer = await sharp({
+            create: {
+              width: 200,
+              height: 50,
+              channels: 4,
+              background: { r: 255, g: 255, b: 255, alpha: 0.5 }
+            }
+          })
+          .png()
+          .toBuffer();
+        }
       }
 
       processedBuffer = await sharp(imageBuffer)
         .composite([{ input: watermarkBuffer, top: 10, left: 10 }])
         .png()
         .toBuffer();
-      fileExt = "png";
       mimeType = "image/png";
       filename = `watermarked-${Date.now()}.png`;
     } else {
       return json({ success: false, message: "❌ Unknown processing type" }, { status: 400 });
     }
 
-    // Convert image to base64 data URL
-    const base64Image = processedBuffer.toString('base64');
-    const dataUrl = `data:${mimeType};base64,${base64Image}`;
-
     console.log(`Processing ${type} - File size: ${processedBuffer.length} bytes, MIME: ${mimeType}`);
 
-    // Step 1: Delete old media first
+    // Step 1: Create staged upload target
+    const stagedUploadMutation = `
+      mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
+        stagedUploadsCreate(input: $input) {
+          stagedTargets {
+            url
+            resourceUrl
+            parameters {
+              name
+              value
+            }
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }`;
+
+    const stagedUploadRes = await fetch(
+      `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
+      {
+        method: "POST",
+        headers: {
+          "X-Shopify-Access-Token": accessToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: stagedUploadMutation,
+          variables: {
+            input: [
+              {
+                resource: "IMAGE",
+                filename: filename,
+                mimeType: mimeType,
+                httpMethod: "POST",
+              },
+            ],
+          },
+        }),
+      }
+    );
+
+    const stagedUploadJson = await stagedUploadRes.json();
+
+    if (stagedUploadJson.data?.stagedUploadsCreate?.userErrors?.length) {
+      const errMsg = stagedUploadJson.data.stagedUploadsCreate.userErrors[0].message;
+      return json({ success: false, message: `❌ Staged upload error: ${errMsg}` }, { status: 400 });
+    }
+
+    const stagedTarget = stagedUploadJson.data?.stagedUploadsCreate?.stagedTargets[0];
+    if (!stagedTarget) {
+      return json({ success: false, message: "❌ Failed to get staged upload URL" }, { status: 400 });
+    }
+
+    console.log("✅ Got staged upload URL");
+
+    // Step 2: Upload file to staged URL
+    const boundary = `----WebKitFormBoundary${Date.now()}${Math.random()}`;
+    const parts = [];
+    
+    // Add parameters
+    for (const param of stagedTarget.parameters) {
+      parts.push(
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="${param.name}"\r\n\r\n` +
+        `${param.value}\r\n`
+      );
+    }
+    
+    // Add file
+    parts.push(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+      `Content-Type: ${mimeType}\r\n\r\n`
+    );
+    
+    const header = Buffer.from(parts.join(''), 'utf-8');
+    const footer = Buffer.from(`\r\n--${boundary}--\r\n`, 'utf-8');
+    const body = Buffer.concat([header, processedBuffer, footer]);
+
+    const uploadResponse = await fetch(stagedTarget.url, {
+      method: "POST",
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length.toString(),
+      },
+      body: body,
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error("Upload to staged URL failed:", uploadResponse.status, errorText);
+      return json({ 
+        success: false, 
+        message: `❌ Failed to upload: ${uploadResponse.statusText}` 
+      }, { status: 400 });
+    }
+
+    console.log("✅ File uploaded to staged URL");
+
+    // Wait for Shopify to process
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Step 3: Delete old media
     const deleteMutation = `
       mutation productDeleteMedia($mediaIds: [ID!]!, $productId: ID!) {
         productDeleteMedia(mediaIds: $mediaIds, productId: $productId) {
@@ -94,7 +205,7 @@ export const action = async ({ request }) => {
         }
       }`;
 
-    await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
+    const deleteRes = await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
       method: "POST",
       headers: {
         "X-Shopify-Access-Token": accessToken,
@@ -109,10 +220,17 @@ export const action = async ({ request }) => {
       }),
     });
 
-    // Wait for deletion to process
+    const deleteJson = await deleteRes.json();
+    if (deleteJson.data?.productDeleteMedia?.userErrors?.length) {
+      console.error("Delete errors:", deleteJson.data.productDeleteMedia.userErrors);
+    }
+
+    console.log("✅ Old media deleted");
+
+    // Wait for deletion
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Step 2: Create new media using base64 data URL
+    // Step 4: Create new media with resourceUrl
     const uploadMutation = `
       mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {
         productCreateMedia(media: $media, productId: $productId) {
@@ -148,7 +266,7 @@ export const action = async ({ request }) => {
             productId,
             media: [
               {
-                originalSource: dataUrl,
+                originalSource: stagedTarget.resourceUrl,
                 mediaContentType: "IMAGE",
               },
             ],
@@ -171,6 +289,8 @@ export const action = async ({ request }) => {
         message: "❌ Failed to create media in Shopify.",
       }, { status: 400 });
     }
+
+    console.log("✅ New media created successfully");
 
     return json({
       success: true,
