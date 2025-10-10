@@ -3,7 +3,6 @@ import fetch from "node-fetch";
 import sharp from "sharp";
 import db from "../db.server";
 import path from "path";
-import { Blob } from "buffer";
 
 const SHOPIFY_API_VERSION = "2024-10";
 
@@ -134,31 +133,48 @@ export const action = async ({ request }) => {
       return json({ success: false, message: "❌ Failed to get staged upload URL" }, { status: 400 });
     }
 
-    // Step 2: Upload the processed image to Shopify's staged URL
-    const uploadFormData = new FormData();
+    // Step 2: Upload the processed image to Shopify's staged URL using multipart/form-data
+    const boundary = `----WebKitFormBoundary${Date.now()}`;
+    let formDataBody = '';
     
     // Add all parameters from Shopify
     stagedTarget.parameters.forEach((param) => {
-      uploadFormData.append(param.name, param.value);
+      formDataBody += `--${boundary}\r\n`;
+      formDataBody += `Content-Disposition: form-data; name="${param.name}"\r\n\r\n`;
+      formDataBody += `${param.value}\r\n`;
     });
     
-    // Create a Blob from the buffer
-    const blob = new Blob([processedBuffer], { type: mimeType });
+    // Add the file
+    formDataBody += `--${boundary}\r\n`;
+    formDataBody += `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n`;
+    formDataBody += `Content-Type: ${mimeType}\r\n\r\n`;
     
-    // Add the file last
-    uploadFormData.append("file", blob, filename);
+    // Combine text part with binary buffer
+    const textBuffer = Buffer.from(formDataBody, 'utf-8');
+    const endBoundary = Buffer.from(`\r\n--${boundary}--\r\n`, 'utf-8');
+    const fullBody = Buffer.concat([textBuffer, processedBuffer, endBoundary]);
 
     const uploadResponse = await fetch(stagedTarget.url, {
       method: "POST",
-      body: uploadFormData,
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body: fullBody,
     });
 
     if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error("Upload error:", errorText);
       return json({ 
         success: false, 
         message: `❌ Failed to upload to Shopify CDN: ${uploadResponse.statusText}` 
       }, { status: 400 });
     }
+
+    console.log("✅ File uploaded to Shopify CDN successfully");
+
+    // Wait for Shopify to process the uploaded file
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // Step 3: Delete old media
     const deleteMutation = `
@@ -187,7 +203,7 @@ export const action = async ({ request }) => {
     });
 
     // Wait for deletion to process
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Step 4: Create new media using the resourceUrl from staged upload
     const uploadMutation = `
