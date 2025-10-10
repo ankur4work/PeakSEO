@@ -81,19 +81,20 @@ export const action = async ({ request }) => {
 
     // 🚀 Upload to Shopify
     const uploadMutation = `
-      mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
-        productCreateMedia(productId: $productId, media: $media) {
-          media {
-            alt
-            mediaContentType
-            status
-          }
-          mediaUserErrors {
-            code
-            message
-          }
-        }
-      }
+mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {
+  productCreateMedia(media: $media, productId: $productId) {
+    media {
+      alt
+      mediaContentType
+    }
+    mediaUserErrors {
+      code
+      field
+      message
+    }
+  }
+}
+
     `;
 
     const variables = {
