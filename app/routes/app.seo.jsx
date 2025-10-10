@@ -1,33 +1,35 @@
 import { useState, useEffect } from "react";
 
 export default function SeoChecker() {
-  const [url, setUrl] = useState("");
+  const [storeDomain, setStoreDomain] = useState("");
   const [scores, setScores] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [screenshot, setScreenshot] = useState("");
 
   useEffect(() => {
-    // ✅ Auto-detect domain from current URL
-    const currentHost = window.location.hostname;
-    setUrl(currentHost);
+    // 🏪 Auto-detect store domain from the current URL
+    const host = window.location.hostname;
+    if (host.includes("myshopify.com")) {
+      setStoreDomain(host);
+    } else {
+      // fallback (you can replace this with your default store)
+      setStoreDomain("example.myshopify.com");
+    }
   }, []);
 
   const checkSeoScore = async () => {
-    if (!url) return;
-
     setLoading(true);
     setError("");
     setScores(null);
     setScreenshot("");
 
-    const apiKey = "YOUR_GOOGLE_API_KEY"; // 🔐 replace with your actual API key
-    const cleanUrl = url.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const apiKey = "AIzaSyBD53zUf_82qIn79_Na8J8yibhS0Ch8AWk";
+    const cleanUrl = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const categories = ["performance", "accessibility", "best-practices", "seo"];
+    const seoUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://${cleanUrl}&category=${categories.join("&category=")}&screenshot=true&key=${apiKey}`;
 
     try {
-      const categories = ["performance", "accessibility", "best-practices", "seo"];
-      const seoUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://${cleanUrl}&category=${categories.join("&category=")}&screenshot=true&key=${apiKey}`;
-
       const res = await fetch(seoUrl);
       const data = await res.json();
 
@@ -37,7 +39,6 @@ export default function SeoChecker() {
         return;
       }
 
-      // ✅ Extract SEO Scores
       const categoriesData = data.lighthouseResult.categories;
       const extractedScores = {};
       categories.forEach((cat) => {
@@ -46,15 +47,11 @@ export default function SeoChecker() {
 
       setScores(extractedScores);
 
-      // 📸 Extract Screenshot
       const screenshotData = data.lighthouseResult?.audits?.["final-screenshot"]?.details?.data;
-      const fallbackShot = data.lighthouseResult?.audits?.["screenshot-thumbnails"]?.details?.items?.[0]?.data;
+      const fullPageScreenshot = data.lighthouseResult?.audits?.["screenshot-thumbnails"]?.details?.items?.[0]?.data;
 
-      if (screenshotData) {
-        setScreenshot(screenshotData);
-      } else if (fallbackShot) {
-        setScreenshot(fallbackShot);
-      }
+      if (screenshotData) setScreenshot(screenshotData);
+      else if (fullPageScreenshot) setScreenshot(fullPageScreenshot);
 
       setLoading(false);
     } catch (err) {
@@ -70,11 +67,10 @@ export default function SeoChecker() {
         🔍 SEO Checker & Screenshot
       </h1>
 
-      {/* Fixed input field */}
       <input
         type="text"
-        value={url}
-        disabled
+        value={storeDomain}
+        readOnly
         style={{
           width: "100%",
           padding: "0.75rem",
@@ -83,12 +79,13 @@ export default function SeoChecker() {
           border: "1px solid #ccc",
           fontSize: "1rem",
           backgroundColor: "#f1f1f1",
-          color: "#555",
+          cursor: "not-allowed",
         }}
       />
+
       <button
         onClick={checkSeoScore}
-        disabled={loading || !url}
+        disabled={loading}
         style={{
           width: "100%",
           padding: "0.75rem",
@@ -130,7 +127,7 @@ export default function SeoChecker() {
           }}
         >
           <h2 style={{ marginBottom: "1rem", color: "#333" }}>
-            📊 SEO Scores for: <span style={{ color: "#007bff" }}>{url}</span>
+            📊 SEO Scores for: <span style={{ color: "#007bff" }}>{storeDomain}</span>
           </h2>
           <ul style={{ listStyle: "none", padding: 0 }}>
             {Object.entries(scores).map(([key, value]) => {
