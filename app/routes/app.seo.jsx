@@ -7,29 +7,19 @@ export default function SeoChecker() {
   const [error, setError] = useState("");
   const [screenshot, setScreenshot] = useState("");
 
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const shopParam = params.get("shop");
+      const host = window.location.hostname;
 
-useEffect(() => {
-  try {
-    // 1️⃣ Try to get "shop" from URL query parameters
-    const params = new URLSearchParams(window.location.search);
-    const shopParam = params.get("shop");
-
-    // 2️⃣ If not present, fallback to current hostname
-    const host = window.location.hostname;
-
-    if (shopParam) {
-      setStoreDomain(shopParam);
-    } else if (host.includes("myshopify.com")) {
-      setStoreDomain(host);
-    } else {
-      setStoreDomain("example.myshopify.com"); // fallback default
+      if (shopParam) setStoreDomain(shopParam);
+      else if (host.includes("myshopify.com")) setStoreDomain(host);
+      else setStoreDomain("example.myshopify.com");
+    } catch {
+      setStoreDomain("example.myshopify.com");
     }
-  } catch (err) {
-    console.error("Failed to detect Shopify store domain:", err);
-    setStoreDomain("example.myshopify.com"); // fallback default
-  }
-}, []);
-
+  }, []);
 
   const checkSeoScore = async () => {
     setLoading(true);
@@ -57,153 +47,166 @@ useEffect(() => {
       categories.forEach((cat) => {
         if (categoriesData[cat]) extractedScores[cat] = Math.round(categoriesData[cat].score * 100);
       });
-
       setScores(extractedScores);
 
       const screenshotData = data.lighthouseResult?.audits?.["final-screenshot"]?.details?.data;
       const fullPageScreenshot = data.lighthouseResult?.audits?.["screenshot-thumbnails"]?.details?.items?.[0]?.data;
-
-      if (screenshotData) setScreenshot(screenshotData);
-      else if (fullPageScreenshot) setScreenshot(fullPageScreenshot);
+      setScreenshot(screenshotData || fullPageScreenshot || "");
 
       setLoading(false);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError("Something went wrong while fetching SEO score or screenshot.");
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: "700px", margin: "2rem auto", fontFamily: "sans-serif", padding: "1rem" }}>
-      <h1 style={{ textAlign: "center", marginBottom: "2rem", color: "#333" }}>
-        🔍 SEO Checker & Screenshot
+    <div style={{
+      maxWidth: "800px",
+      margin: "3rem auto",
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      padding: "2rem"
+    }}>
+      <h1 style={{
+        textAlign: "center",
+        marginBottom: "2.5rem",
+        fontSize: "2.2rem",
+        color: "#1c1c1c",
+        letterSpacing: "1px"
+      }}>
+        🔍 Shopify SEO Checker & Screenshot
       </h1>
 
-      <input
-        type="text"
-        value={storeDomain}
-        readOnly
-        style={{
-          width: "100%",
-          padding: "0.75rem",
-          marginBottom: "1rem",
-          borderRadius: "5px",
-          border: "1px solid #ccc",
-          fontSize: "1rem",
-          backgroundColor: "#f1f1f1",
-          cursor: "not-allowed",
-        }}
-      />
-
-      <button
-        onClick={checkSeoScore}
-        disabled={loading}
-        style={{
-          width: "100%",
-          padding: "0.75rem",
-          fontSize: "1rem",
-          borderRadius: "5px",
-          backgroundColor: loading ? "#6c757d" : "#007bff",
-          color: "#fff",
-          border: "none",
-          cursor: loading ? "not-allowed" : "pointer",
-          fontWeight: "500",
-        }}
-      >
-        {loading ? "⏳ Checking..." : "✅ Check SEO & Screenshot"}
-      </button>
-
-      {error && (
-        <div
+      {/* Input Card */}
+      <div style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "12px",
+        padding: "1.5rem",
+        boxShadow: "0 6px 18px rgba(0,0,0,0.1)",
+        marginBottom: "2rem",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem"
+      }}>
+        <label style={{ fontWeight: "600", color: "#333" }}>Store Domain</label>
+        <input
+          type="text"
+          value={storeDomain}
+          readOnly
           style={{
-            marginTop: "1rem",
-            padding: "1rem",
-            backgroundColor: "#f8d7da",
-            color: "#721c24",
-            borderRadius: "5px",
-            border: "1px solid #f5c6cb",
+            width: "100%",
+            padding: "0.75rem 1rem",
+            borderRadius: "8px",
+            border: "1px solid #ccc",
+            backgroundColor: "#f9f9f9",
+            fontSize: "1rem",
+            color: "#555",
+            cursor: "not-allowed"
+          }}
+        />
+        <button
+          onClick={checkSeoScore}
+          disabled={loading}
+          style={{
+            padding: "0.75rem",
+            fontSize: "1rem",
+            borderRadius: "8px",
+            border: "none",
+            fontWeight: "600",
+            cursor: loading ? "not-allowed" : "pointer",
+            background: loading
+              ? "#6c757d"
+              : "linear-gradient(90deg, #007bff, #0056b3)",
+            color: "#fff",
+            transition: "all 0.3s ease"
           }}
         >
+          {loading ? "⏳ Checking..." : "✅ Check SEO & Screenshot"}
+        </button>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div style={{
+          backgroundColor: "#ffe0e0",
+          color: "#b00020",
+          padding: "1rem 1.5rem",
+          borderRadius: "8px",
+          marginBottom: "2rem",
+          fontWeight: "500",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+        }}>
           ❌ {error}
         </div>
       )}
 
+      {/* Scores */}
       {scores && (
-        <div
-          style={{
-            marginTop: "2rem",
-            padding: "1.5rem",
-            backgroundColor: "#f8f9fa",
-            borderRadius: "8px",
-            border: "1px solid #dee2e6",
-          }}
-        >
-          <h2 style={{ marginBottom: "1rem", color: "#333" }}>
-            📊 SEO Scores for: <span style={{ color: "#007bff" }}>{storeDomain}</span>
-          </h2>
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {Object.entries(scores).map(([key, value]) => {
-              const color = value >= 90 ? "#28a745" : value >= 50 ? "#ffc107" : "#dc3545";
-              const emoji = value >= 90 ? "🟢" : value >= 50 ? "🟡" : "🔴";
-              return (
-                <li
-                  key={key}
-                  style={{
-                    marginBottom: "0.75rem",
-                    padding: "0.75rem",
-                    backgroundColor: "#fff",
-                    borderRadius: "5px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  <strong style={{ fontSize: "0.95rem" }}>
-                    {emoji}{" "}
-                    {key === "best-practices"
-                      ? "Best Practices"
-                      : key.charAt(0).toUpperCase() + key.slice(1).replace("-", " ")}
-                    :
-                  </strong>
-                  <span
-                    style={{
-                      color: color,
-                      fontWeight: "bold",
-                      fontSize: "1.2rem",
-                    }}
-                  >
-                    {value}%
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "1.5rem",
+          marginBottom: "2rem"
+        }}>
+          {Object.entries(scores).map(([key, value]) => {
+            const color = value >= 90 ? "#28a745" : value >= 50 ? "#ffc107" : "#dc3545";
+            const emoji = value >= 90 ? "🟢" : value >= 50 ? "🟡" : "🔴";
+            return (
+              <div key={key} style={{
+                backgroundColor: "#fff",
+                borderRadius: "12px",
+                padding: "1rem",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                textAlign: "center"
+              }}>
+                <div style={{ fontSize: "1.8rem" }}>{emoji}</div>
+                <div style={{
+                  fontSize: "1rem",
+                  fontWeight: "600",
+                  color: "#333",
+                  marginBottom: "0.5rem",
+                  textTransform: "capitalize"
+                }}>
+                  {key === "best-practices" ? "Best Practices" : key.replace("-", " ")}
+                </div>
+                <div style={{
+                  fontSize: "1.5rem",
+                  fontWeight: "700",
+                  color: color
+                }}>
+                  {value}%
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
+      {/* Screenshot */}
       {screenshot && (
-        <div style={{ marginTop: "2rem" }}>
+        <div style={{
+          backgroundColor: "#fff",
+          padding: "1.5rem",
+          borderRadius: "12px",
+          boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+          textAlign: "center"
+        }}>
           <h2 style={{ marginBottom: "1rem", color: "#333" }}>📸 Screenshot Preview</h2>
-          <div
-            style={{
-              borderRadius: "10px",
-              overflow: "hidden",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-              border: "1px solid #dee2e6",
-            }}
-          >
+          <div style={{
+            overflow: "hidden",
+            borderRadius: "12px",
+            border: "1px solid #e0e0e0",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+          }}>
             <img
               src={screenshot}
               alt="Website Screenshot"
-              style={{
-                width: "100%",
-                display: "block",
-              }}
+              style={{ width: "100%", display: "block" }}
               onError={(e) => {
-                console.error("Failed to load screenshot");
-                e.target.parentElement.innerHTML = "<p style='padding: 2rem; text-align: center; color: #666;'>❌ Screenshot could not be loaded</p>";
+                e.target.parentElement.innerHTML = "<p style='padding: 2rem; color: #666;'>❌ Screenshot could not be loaded</p>";
               }}
             />
           </div>

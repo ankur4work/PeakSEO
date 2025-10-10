@@ -26,7 +26,7 @@ export default function App() {
         <s-link href={`/app/additional?shop=${shop}`}>additional page</s-link> */}
         <s-link href={`/app/seo?shop=${shop}`}>Seo</s-link>
         {/* <s-link href={`/app/newproduct?shop=${shop}`}>New-product-Page</s-link> */}
-        <s-link href={`/app/product?shop=${shop}`}>Product-Page</s-link>
+        <s-link href={`/app/product?shop=${shop}`}>Image-Optimizer</s-link>
       </s-app-nav>
       <Outlet context={{ shop }} />
     </AppProvider>
