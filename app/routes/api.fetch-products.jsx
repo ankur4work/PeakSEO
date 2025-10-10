@@ -1,4 +1,3 @@
-// app/routes/api/fetch-products.jsx
 import { json } from "@remix-run/node";
 import fetch from "node-fetch";
 import db from "../db.server";
@@ -48,9 +47,9 @@ export const loader = async ({ request }) => {
     });
 
     if (!response.ok) {
-      const text = await response.text(); // debug invalid response
-      console.error("Shopify response error:", text);
-      throw new Error("Failed to fetch products from Shopify");
+      const text = await response.text();
+      console.error("Shopify error:", text);
+      throw new Error("Failed to fetch products");
     }
 
     const result = await response.json();

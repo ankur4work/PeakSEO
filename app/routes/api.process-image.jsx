@@ -1,4 +1,3 @@
-// app/routes/api/process-image.jsx
 import { json } from "@remix-run/node";
 import fetch from "node-fetch";
 import fs from "fs";
@@ -22,38 +21,28 @@ export const action = async ({ request }) => {
       return json({ success: false, message: "❌ Missing required fields" }, { status: 400 });
     }
 
-    // 🔐 Get access token from DB
     const session = await db.session.findFirst({ where: { shop } });
     const accessToken = session?.accessToken;
     if (!accessToken) {
       return json({ success: false, message: "Access token not found" }, { status: 401 });
     }
 
-    // 🖼️ Fetch original image
+    // 📥 Download original image
     const originalUrl = imageSrc.split("?")[0];
     const imageResponse = await fetch(originalUrl);
-    if (!imageResponse.ok) {
-      return json({ success: false, message: "Failed to fetch original image" }, { status: 400 });
-    }
     const imageBuffer = await imageResponse.buffer();
 
     let processedBuffer;
     let fileExt = "";
-    let mimeType = "";
-
     if (type === "compress") {
       processedBuffer = await sharp(imageBuffer).jpeg({ quality: 60 }).toBuffer();
       fileExt = "jpg";
-      mimeType = "image/jpeg";
     } else if (type === "watermark") {
       let watermarkBuffer;
       if (watermarkFile && typeof watermarkFile === "object") {
         watermarkBuffer = Buffer.from(await watermarkFile.arrayBuffer());
       } else {
         const defaultWatermarkPath = path.resolve("public/watermark.png");
-        if (!fs.existsSync(defaultWatermarkPath)) {
-          return json({ success: false, message: "Watermark image not found" }, { status: 400 });
-        }
         watermarkBuffer = await sharp(defaultWatermarkPath).resize(100).png().toBuffer();
       }
 
@@ -62,12 +51,11 @@ export const action = async ({ request }) => {
         .png()
         .toBuffer();
       fileExt = "png";
-      mimeType = "image/png";
     } else {
       return json({ success: false, message: "❌ Unknown processing type" }, { status: 400 });
     }
 
-    // 📝 Save processed file
+    // 💾 Save processed image locally
     const uploadsDir = path.resolve("public/uploads");
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
@@ -75,39 +63,47 @@ export const action = async ({ request }) => {
     const filePath = path.join(uploadsDir, fileName);
     fs.writeFileSync(filePath, processedBuffer);
 
-    // ⚠️ Shopify requires a **public URL accessible without authentication**
     const appDomain = process.env.APP_DOMAIN || `https://${shop}`;
     const fileUrl = `${appDomain}/uploads/${fileName}`;
 
-    // 🚀 Upload to Shopify
+    // 🧹 Delete old media
+    const deleteMutation = `
+      mutation productDeleteMedia($mediaIds: [ID!]!) {
+        productDeleteMedia(mediaIds: $mediaIds) {
+          deletedMediaIds
+          userErrors {
+            message
+          }
+        }
+      }`;
+
+    await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
+      method: "POST",
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query: deleteMutation, variables: { mediaIds: [mediaId] } }),
+    });
+
+    // 🚀 Upload new processed image
     const uploadMutation = `
-mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {
-  productCreateMedia(media: $media, productId: $productId) {
-    media {
-      alt
-      mediaContentType
-    }
-    mediaUserErrors {
-      code
-      field
-      message
-    }
-  }
-}
+      mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {
+        productCreateMedia(media: $media, productId: $productId) {
+          media {
+            id
+            alt
+            mediaContentType
+          }
+          mediaUserErrors {
+            code
+            field
+            message
+          }
+        }
+      }`;
 
-    `;
-
-    const variables = {
-      productId,
-      media: [
-        {
-          originalSource: fileUrl,
-          mediaContentType: "IMAGE",
-        },
-      ],
-    };
-
-    const shopifyResponse = await fetch(
+    const uploadRes = await fetch(
       `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
       {
         method: "POST",
@@ -115,14 +111,25 @@ mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {
           "X-Shopify-Access-Token": accessToken,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: uploadMutation, variables }),
+        body: JSON.stringify({
+          query: uploadMutation,
+          variables: {
+            productId,
+            media: [
+              {
+                originalSource: fileUrl,
+                mediaContentType: "IMAGE",
+              },
+            ],
+          },
+        }),
       }
     );
 
-    const shopifyJson = await shopifyResponse.json();
+    const uploadJson = await uploadRes.json();
 
-    if (shopifyJson.data?.productCreateMedia?.mediaUserErrors?.length) {
-      const errMsg = shopifyJson.data.productCreateMedia.mediaUserErrors[0].message;
+    if (uploadJson.data?.productCreateMedia?.mediaUserErrors?.length) {
+      const errMsg = uploadJson.data.productCreateMedia.mediaUserErrors[0].message;
       return json({ success: false, message: `❌ Shopify error: ${errMsg}` }, { status: 400 });
     }
 
@@ -130,8 +137,8 @@ mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {
       success: true,
       message:
         type === "compress"
-          ? "✅ Image compressed and uploaded successfully!"
-          : "✅ Watermark added and uploaded successfully!",
+          ? "✅ Image compressed and replaced successfully!"
+          : "✅ Watermark added and replaced successfully!",
       url: fileUrl,
     });
   } catch (err) {
