@@ -53,7 +53,11 @@ export default function ProductsRoute() {
       const data = await res.json();
       if (data.success) {
         setMessage(data.message);
-        await fetchProducts(shop);
+        
+        // Wait for Shopify to fully process the image before refreshing
+        setTimeout(async () => {
+          await fetchProducts(shop);
+        }, 2000);
       } else {
         setMessage(data.message);
       }
@@ -104,6 +108,21 @@ export default function ProductsRoute() {
         </div>
       )}
 
+      {loadingId && (
+        <div
+          style={{
+            padding: "12px 20px",
+            backgroundColor: "#cfe2ff",
+            color: "#084298",
+            borderLeft: "6px solid #084298",
+            borderRadius: 4,
+            marginBottom: 20,
+          }}
+        >
+          ⏳ Processing... Please wait, this may take a few seconds.
+        </div>
+      )}
+
       {products.length === 0 && <p>No products available.</p>}
 
       {products.map(({ node }) => {
@@ -126,7 +145,7 @@ export default function ProductsRoute() {
             {image ? (
               <>
                 <img
-                  src={image.url}
+                  src={`${image.url}?t=${Date.now()}`}
                   alt={image.altText || "Product Image"}
                   width={160}
                   style={{
@@ -146,7 +165,7 @@ export default function ProductsRoute() {
                       color: "#fff",
                       border: "none",
                       borderRadius: 6,
-                      cursor: "pointer",
+                      cursor: loadingId === media.id ? "not-allowed" : "pointer",
                       fontWeight: 500,
                       opacity: loadingId === media.id ? 0.7 : 1,
                     }}
@@ -162,7 +181,7 @@ export default function ProductsRoute() {
                       color: "#fff",
                       border: "none",
                       borderRadius: 6,
-                      cursor: "pointer",
+                      cursor: loadingId === media.id ? "not-allowed" : "pointer",
                       fontWeight: 500,
                       opacity: loadingId === media.id ? 0.7 : 1,
                     }}
