@@ -14,7 +14,7 @@ export const loader = async ({ request }) => {
 
     const productQuery = `
       {
-        products(first: 30) {
+        products(first: 100) {
           edges {
             node {
               id
