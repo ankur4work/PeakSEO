@@ -23,13 +23,13 @@ export default function Index() {
             ✅ Automatically add watermarks to product images for branding or copyright.
           </s-list-item>
         </s-unordered-list>
-        <s-paragraph>
+        {/* <s-paragraph>
           This app helps you maintain a professional store, improve SEO scores, and manage product images efficiently — all from one dashboard.
         </s-paragraph>
         <s-paragraph>
           Learn more about the technologies used:
-        </s-paragraph>
-        <s-unordered-list>
+        </s-paragraph> */}
+        {/* <s-unordered-list>
           <s-list-item>
             🔹 <s-link href="https://reactrouter.com/" target="_blank">React Router</s-link> for app navigation.
           </s-list-item>
@@ -39,7 +39,7 @@ export default function Index() {
           <s-list-item>
             🔹 <s-link href="https://www.prisma.io/" target="_blank">Prisma</s-link> for database management.
           </s-list-item>
-        </s-unordered-list>
+        </s-unordered-list> */}
         <s-paragraph>
           Start by connecting your Shopify store and begin optimizing your products and website SEO today!
         </s-paragraph>
