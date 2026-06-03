@@ -18,9 +18,9 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>Boost Your Store's SEO with PeakSEO</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Analyze, optimize, and dominate search rankings — all from one dashboard.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
@@ -36,16 +36,13 @@ export default function App() {
         )}
         <ul className={styles.list}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>SEO Analysis</strong>. Instantly audit your store's SEO performance with Google Lighthouse scores.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Image Optimizer</strong>. Compress and watermark product images to speed up your store.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Page Screenshots</strong>. Capture and record page snapshots for SEO tracking and reporting.
           </li>
         </ul>
       </div>

@@ -6,6 +6,9 @@
   width: 100%;
   text-align: center;
   padding: 1rem;
+  background: linear-gradient(135deg, #0a1628 0%, #0d2137 50%, #0a2e1a 100%);
+  min-height: 100vh;
+  color: #fff;
 }
 
 .heading,
@@ -14,9 +17,19 @@
   margin: 0;
 }
 
+.heading {
+  font-size: 2.2rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #22c55e, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .text {
   font-size: 1.2rem;
   padding-bottom: 2rem;
+  color: #94a3b8;
 }
 
 .content {
@@ -38,14 +51,35 @@
   max-width: 20rem;
   text-align: left;
   font-size: 1rem;
+  color: #cbd5e1;
 }
 
 .input {
-  padding: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #fff;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #22c55e;
 }
 
 .button {
-  padding: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(90deg, #22c55e, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.button:hover {
+  opacity: 0.9;
 }
 
 .list {
@@ -60,6 +94,13 @@
 .list > li {
   max-width: 20rem;
   text-align: left;
+  color: #94a3b8;
+}
+
+.list > li strong {
+  color: #22c55e;
+  display: block;
+  margin-bottom: 0.25rem;
 }
 
 @media only screen and (max-width: 50rem) {

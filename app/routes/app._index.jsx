@@ -4,10 +4,10 @@ export default function Index() {
   const shopify = useAppBridge();
 
   return (
-    <s-page heading="Welcome to SEO & Product Manager App">
+    <s-page heading="Welcome to PeakSEO">
       <s-section>
         <s-paragraph>
-          🚀 <strong>SEO & Product Manager</strong> is a Shopify app designed to help store owners:
+          🚀 <strong>PeakSEO</strong> is a Shopify app designed to help store owners:
         </s-paragraph>
         <s-unordered-list>
           <s-list-item>
