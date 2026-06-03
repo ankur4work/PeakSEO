@@ -1,25 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useOutletContext } from "react-router";
 
 export default function SeoChecker() {
-  const [storeDomain, setStoreDomain] = useState("");
+  const { shop } = useOutletContext();
+  const [storeDomain, setStoreDomain] = useState(shop || "");
   const [scores, setScores] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [screenshot, setScreenshot] = useState("");
-
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const shopParam = params.get("shop");
-      const host = window.location.hostname;
-
-      if (shopParam) setStoreDomain(shopParam);
-      else if (host.includes("myshopify.com")) setStoreDomain(host);
-      else setStoreDomain("example.myshopify.com");
-    } catch {
-      setStoreDomain("example.myshopify.com");
-    }
-  }, []);
 
   const checkSeoScore = async () => {
     setLoading(true);
