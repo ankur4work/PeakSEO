@@ -1,5 +1,5 @@
 {
-  "name": "beneficial-seo",
+  "name": "peakseo",
   "private": true,
   "scripts": {
     "build": "react-router build",
@@ -81,5 +81,5 @@
     "@graphql-codegen/client-preset": "4.7.0",
     "@graphql-codegen/typescript-operations": "4.5.0"
   },
-  "author": "digittrix"
+  "author": "PeakSEO"
 }

@@ -1,6 +1,6 @@
-name = "SeoMate"
-client_id = "c827727c499d170e74b3bd6f0e69ff3d"
-application_url = "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/"
+name = "PeakSEO"
+client_id = "3c495798894eca0ab3e388afa424ac32"
+application_url = "https://peakseo.onkra.online"
 embedded = true
 
 
@@ -12,9 +12,9 @@ direct_api_mode = "online"
 
 [auth]
 redirect_urls = [
-  "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/auth/callback",
-  "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/auth/shopify/callback",
-  "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/api/auth/callback"
+  "https://peakseo.onkra.online/auth/callback",
+  "https://peakseo.onkra.online/auth/shopify/callback",
+  "https://peakseo.onkra.online/api/auth/callback"
 ]
 
 [webhooks]
@@ -23,10 +23,10 @@ api_version = "2025-04"
 [[webhooks.subscriptions]]
 topics = [ "app/uninstalled" ]
 compliance_topics = [ "customers/redact", "customers/data_request", "shop/redact" ]
-uri = "https://hkdk.events/wosrrl2b1hj10n"
+uri = "https://peakseo.onkra.online/webhooks"
 
 [app_proxy]
-url =  "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/api/proxy"
+url = "https://peakseo.onkra.online/api/proxy"
 subpath = "store-pickup"
 prefix = "apps"
 
@@ -34,7 +34,7 @@ prefix = "apps"
 embedded = false
 
 [app_preferences]
-url = "https://seo-beneficial-e58ffe8cc4bc.herokuapp.com/preferences"
+url = "https://peakseo.onkra.online/preferences"
 
 [build]
 automatically_update_urls_on_dev = false
