@@ -5,7 +5,7 @@ export const loader = async ({ request }) => {
   const shop = url.searchParams.get("shop");
 
   if (!shop) {
-    return redirect("/error?reason=missing_shop");
+    return redirect("/auth/login");
   }
 
   // Redirect merchant to Shopify OAuth install page
