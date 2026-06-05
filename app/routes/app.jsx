@@ -6,17 +6,30 @@ import { authenticate, PLAN_MONTHLY } from "../shopify.server";
 export const loader = async ({ request }) => {
   const { session, billing } = await authenticate.admin(request);
 
-  const { hasActivePayment } = await billing.check({
-    plans: [PLAN_MONTHLY],
-    isTest: true,
-  });
+  let hasPlan = true; // default to true so app stays accessible if billing API fails
 
-  if (!hasActivePayment) {
-    await billing.request({
-      plan: PLAN_MONTHLY,
+  try {
+    const { hasActivePayment } = await billing.check({
+      plans: [PLAN_MONTHLY],
       isTest: true,
-      returnUrl: `${process.env.SHOPIFY_APP_URL}/app`,
     });
+    hasPlan = hasActivePayment;
+  } catch (e) {
+    console.error("Billing check error:", e?.response?.body ?? e?.message ?? e);
+    // If billing check fails (e.g. token needs refresh), let user in
+    hasPlan = true;
+  }
+
+  if (!hasPlan) {
+    try {
+      await billing.request({
+        plan: PLAN_MONTHLY,
+        isTest: true,
+        returnUrl: `${process.env.SHOPIFY_APP_URL}/app`,
+      });
+    } catch (e) {
+      console.error("Billing request error:", e?.message ?? e);
+    }
   }
 
   return {
