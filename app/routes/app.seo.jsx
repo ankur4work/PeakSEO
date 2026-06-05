@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router";
 
 export default function SeoChecker() {
   const { shop } = useOutletContext();
-  const [storeDomain, setStoreDomain] = useState(shop || "");
+  const [storeDomain] = useState(shop || "");
   const [scores, setScores] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [screenshot, setScreenshot] = useState("");
+
+  useEffect(() => {
+    if (shop) checkSeoScore();
+  }, [shop]);
 
   const checkSeoScore = async () => {
     setLoading(true);
@@ -60,66 +64,21 @@ export default function SeoChecker() {
       color: "#1a1a1a"
     }}>
       {/* Header */}
-      <div style={{
-        textAlign: "center",
-        marginBottom: "3rem"
-      }}>
-        <h1 style={{ fontSize: "2.5rem", fontWeight: "700" }}>🔍 Shopify SEO Dashboard</h1>
+      <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+        <h1 style={{ fontSize: "2.5rem", fontWeight: "700" }}>🔍 SEO Dashboard</h1>
         <p style={{ color: "#555", marginTop: "0.5rem" }}>
-          Analyze your store SEO and get a preview screenshot
+          {loading ? "⏳ Analyzing your store..." : storeDomain ? `Analyzing: ${storeDomain}` : "Loading store..."}
         </p>
-      </div>
-
-      {/* Input Card */}
-      <div style={{
-        background: "linear-gradient(145deg, #f0f4ff, #d9e4ff)",
-        borderRadius: "15px",
-        padding: "2rem",
-        boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-        marginBottom: "2rem",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1rem"
-      }}>
-        <label style={{ fontWeight: "600", color: "#333", fontSize: "1rem" }}>Store Domain</label>
-        <input
-          type="text"
-          value={storeDomain}
-          onChange={(e) => setStoreDomain(e.target.value)}
-          placeholder="yourstore.myshopify.com"
-          style={{
-            width: "100%",
-            padding: "0.75rem 1rem",
-            borderRadius: "10px",
-            border: "1px solid #c9d3ff",
-            backgroundColor: "#e6ecff",
-            fontSize: "1rem",
-            fontWeight: "500",
-            cursor: "text",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-        />
-        <button
-          onClick={checkSeoScore}
-          disabled={loading}
-          style={{
-            padding: "0.75rem",
-            fontSize: "1rem",
-            borderRadius: "10px",
-            border: "none",
-            fontWeight: "600",
-            cursor: loading ? "not-allowed" : "pointer",
-            background: loading
-              ? "#6c757d"
-              : "linear-gradient(90deg, #4facfe, #00f2fe)",
-            color: "#fff",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            transition: "0.3s all",
-          }}
-        >
-          {loading ? "⏳ Checking..." : "✅ Analyze SEO"}
-        </button>
+        {loading && (
+          <div style={{ marginTop: "1rem" }}>
+            <div style={{
+              display: "inline-block", width: "40px", height: "40px",
+              border: "4px solid #e0e0e0", borderTopColor: "#4facfe",
+              borderRadius: "50%", animation: "spin 0.8s linear infinite",
+            }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
       </div>
 
       {/* Error */}
