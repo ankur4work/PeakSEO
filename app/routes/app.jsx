@@ -18,10 +18,16 @@ const CHECK_SUBSCRIPTION = `
 export const loader = async ({ request }) => {
   const { session, admin } = await authenticate.admin(request);
 
-  const res = await admin.graphql(CHECK_SUBSCRIPTION);
-  const { data } = await res.json();
-  const active = data?.currentAppInstallation?.activeSubscriptions ?? [];
-  const hasPlan = active.some(s => s.status === "ACTIVE");
+  let hasPlan = false;
+  try {
+    const res = await admin.graphql(CHECK_SUBSCRIPTION);
+    const json = await res.json();
+    console.log("Billing check response:", JSON.stringify(json).slice(0, 500));
+    const active = json.data?.currentAppInstallation?.activeSubscriptions ?? [];
+    hasPlan = active.some(s => s.status === "ACTIVE");
+  } catch (e) {
+    console.error("Billing check failed:", e.message);
+  }
 
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
