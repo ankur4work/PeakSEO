@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useRouteError, redirect } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
@@ -18,9 +18,9 @@ const CHECK_SUBSCRIPTION = `
 export const loader = async ({ request }) => {
   const { session, admin } = await authenticate.admin(request);
 
-  // Check active billing subscription
+  // Check active billing — skip on billing route to avoid redirect loop
   const url = new URL(request.url);
-  const isBillingPage = url.pathname === "/app/billing";
+  const isBillingPage = url.pathname.startsWith("/app/billing");
 
   if (!isBillingPage) {
     const res = await admin.graphql(CHECK_SUBSCRIPTION);
@@ -29,7 +29,6 @@ export const loader = async ({ request }) => {
     const hasPlan = active.some(s => s.status === "ACTIVE");
 
     if (!hasPlan) {
-      const { redirect } = await import("react-router");
       throw redirect("/app/billing");
     }
   }

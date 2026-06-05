@@ -44,7 +44,7 @@ export const action = async ({ request }) => {
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
-  return {};
+  return null;
 };
 
 export default function BillingPage() {
