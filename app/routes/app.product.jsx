@@ -16,7 +16,7 @@ export default function ProductsRoute() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/fetch-products?shop=${shop}`);
+      const res = await fetch(`/api/fetch-products`);
       const data = await res.json();
       setProducts(data.products || []);
     } catch (err) {
