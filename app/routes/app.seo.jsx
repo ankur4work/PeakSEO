@@ -85,16 +85,19 @@ export default function SeoChecker() {
         <input
           type="text"
           value={storeDomain}
-          readOnly
+          onChange={(e) => setStoreDomain(e.target.value)}
+          placeholder="yourstore.myshopify.com"
           style={{
             width: "100%",
             padding: "0.75rem 1rem",
             borderRadius: "10px",
-            border: "none",
+            border: "1px solid #c9d3ff",
             backgroundColor: "#e6ecff",
             fontSize: "1rem",
             fontWeight: "500",
-            cursor: "not-allowed"
+            cursor: "text",
+            outline: "none",
+            boxSizing: "border-box",
           }}
         />
         <button

@@ -4,15 +4,11 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
-  // Get shop from URL
-  const url = new URL(request.url);
-  const shop = url.searchParams.get("shop") || "";
-
-  return { 
+  return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
-    shop: shop
+    shop: session.shop
   };
 };
 
