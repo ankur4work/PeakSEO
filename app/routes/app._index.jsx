@@ -1,4 +1,4 @@
-import { useOutletContext } from "react-router";
+import { useOutletContext, Link } from "react-router";
 
 const features = [
   {
@@ -135,7 +135,7 @@ export default function Index() {
                   ))}
                 </div>
 
-                <a href={`${f.path}${shop ? `?shop=${shop}` : ""}`} style={{
+                <Link to={f.path} style={{
                   display: "block", textAlign: "center", textDecoration: "none",
                   background: f.gradient, color: "#fff", fontWeight: "600", fontSize: "0.85rem",
                   padding: "0.6rem 1rem", borderRadius: "8px", marginTop: "auto",
@@ -143,7 +143,7 @@ export default function Index() {
                 }}
                   onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
                   onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-                >{f.cta} →</a>
+                >{f.cta} →</Link>
               </div>
             </div>
           ))}
