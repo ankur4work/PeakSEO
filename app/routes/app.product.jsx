@@ -1,29 +1,52 @@
-import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router";
+import { useState } from "react";
+import { useOutletContext, useLoaderData } from "react-router";
+import { authenticate } from "../shopify.server";
+
+const PRODUCTS_QUERY = `
+  {
+    products(first: 100) {
+      edges {
+        node {
+          id
+          title
+          media(first: 1) {
+            edges {
+              node {
+                ... on MediaImage {
+                  id
+                  image { url altText }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const loader = async ({ request }) => {
+  const { admin } = await authenticate.admin(request);
+  const res = await admin.graphql(PRODUCTS_QUERY);
+  const { data } = await res.json();
+  return { products: data?.products?.edges || [] };
+};
 
 export default function ProductsRoute() {
   const { shop } = useOutletContext();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { products: initialProducts } = useLoaderData();
+  const [products, setProducts] = useState(initialProducts);
+  const [loading] = useState(false);
   const [loadingId, setLoadingId] = useState(null);
   const [message, setMessage] = useState(null);
   const [watermark, setWatermark] = useState(null);
 
-  useEffect(() => {
-    if (shop) fetchProducts();
-  }, [shop]);
-
   const fetchProducts = async () => {
-    setLoading(true);
     try {
-      const res = await fetch(`/api/fetch-products`);
+      const res = await fetch(`/api/fetch-products?shop=${shop}`);
       const data = await res.json();
-      setProducts(data.products || []);
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to load products." });
-    } finally {
-      setLoading(false);
-    }
+      if (data.products?.length) setProducts(data.products);
+    } catch (_) {}
   };
 
   const handleClick = async (mediaId, imageSrc, type, productId) => {
