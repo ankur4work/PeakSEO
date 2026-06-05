@@ -3,8 +3,36 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
 
+const CHECK_SUBSCRIPTION = `
+  query {
+    currentAppInstallation {
+      activeSubscriptions {
+        id
+        name
+        status
+      }
+    }
+  }
+`;
+
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
+
+  // Check active billing subscription
+  const url = new URL(request.url);
+  const isBillingPage = url.pathname === "/app/billing";
+
+  if (!isBillingPage) {
+    const res = await admin.graphql(CHECK_SUBSCRIPTION);
+    const { data } = await res.json();
+    const active = data?.currentAppInstallation?.activeSubscriptions ?? [];
+    const hasPlan = active.some(s => s.status === "ACTIVE");
+
+    if (!hasPlan) {
+      const { redirect } = await import("react-router");
+      throw redirect("/app/billing");
+    }
+  }
 
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
