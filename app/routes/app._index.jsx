@@ -8,7 +8,7 @@ const features = [
     cta: "Analyze Now",
     path: "/app/seo",
     gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    steps: ["Go to SEO tab", "Your store domain is pre-filled", "Hit Analyze SEO"],
+    steps: ["Open the SEO tab from the sidebar", "Analysis runs automatically", "Review your scores and fix issues"],
   },
   {
     icon: "🖼️",
@@ -17,16 +17,7 @@ const features = [
     cta: "Optimize Images",
     path: "/app/product",
     gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-    steps: ["Go to Image-Optimizer tab", "Select products to optimize", "Choose compression or watermark"],
-  },
-  {
-    icon: "📸",
-    title: "Page Screenshots",
-    description: "Capture full-page screenshots of your store for SEO records, reports, or client previews.",
-    cta: "Take Screenshot",
-    path: "/app/seo",
-    gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-    steps: ["Run an SEO analysis first", "Scroll down to see the screenshot", "Right-click to save the image"],
+    steps: ["Open Image-Optimizer from the sidebar", "Select products to optimize", "Choose compression or watermark"],
   },
 ];
 
@@ -75,7 +66,7 @@ export default function Index() {
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               }}>PeakSEO</h1>
               <p style={{ margin: 0, color: "#64748b", fontSize: "0.85rem" }}>
-                {shop ? `Connected: ${shop}` : "SEO & Image Optimization Suite"}
+                SEO & Image Optimization Suite
               </p>
             </div>
           </div>

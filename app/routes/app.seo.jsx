@@ -67,7 +67,7 @@ export default function SeoChecker() {
       <div style={{ textAlign: "center", marginBottom: "3rem" }}>
         <h1 style={{ fontSize: "2.5rem", fontWeight: "700" }}>🔍 SEO Dashboard</h1>
         <p style={{ color: "#555", marginTop: "0.5rem" }}>
-          {loading ? "⏳ Analyzing your store..." : storeDomain ? `Analyzing: ${storeDomain}` : "Loading store..."}
+          {loading ? "⏳ Analyzing your store, please wait..." : scores ? "Analysis complete" : "Preparing analysis..."}
         </p>
         {loading && (
           <div style={{ marginTop: "1rem" }}>
