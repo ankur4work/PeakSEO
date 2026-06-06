@@ -3,6 +3,12 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate, PLAN_MONTHLY } from "../shopify.server";
 
+// App Bridge reauthorize header — App Bridge catches this and does a top-level
+// redirect (breaking out of the iframe) to the URL we provide.
+const REAUTH_HEADER = "X-Shopify-API-Request-Failure-Reauthorize-Url";
+
+const SHOP_TEST_QUERY = `{ shop { name } }`;
+
 const PRODUCTS_QUERY = `{
   products(first: 100) {
     edges {
@@ -24,12 +30,36 @@ const PRODUCTS_QUERY = `{
   }
 }`;
 
+function isForbidden(e) {
+  if (e instanceof Response) return e.status === 403 || e.status === 401;
+  const code = e?.response?.code ?? e?.status;
+  return code === 403 || code === 401;
+}
+
 export const loader = async ({ request }) => {
   const { session, admin, billing } = await authenticate.admin(request);
   const url = new URL(request.url);
 
-  // Billing gate — but NEVER crash the app if the billing API errors.
-  // Capture the full error so we can diagnose the 403.
+  // 1) Verify the access token actually has API access. A fresh token-exchange
+  //    token that 403s means the store's grant for this app is missing/stale —
+  //    redirect the merchant to the install/grant page to fix it in one click.
+  try {
+    const test = await admin.graphql(SHOP_TEST_QUERY);
+    const tj = await test.json();
+    if (!tj?.data?.shop) throw new Error("no shop data");
+  } catch (e) {
+    if (isForbidden(e)) {
+      const installUrl = `https://${session.shop}/admin/oauth/install?client_id=${process.env.SHOPIFY_API_KEY}&scope=${encodeURIComponent(process.env.SCOPES || "")}`;
+      console.log("Token lacks grant → redirecting to install/grant page:", installUrl);
+      throw new Response(undefined, {
+        status: 401,
+        headers: { [REAUTH_HEADER]: installUrl },
+      });
+    }
+    console.error("Shop test query failed (non-403):", e?.message ?? e);
+  }
+
+  // 2) Billing gate (token is valid here). Never crash if billing errors.
   try {
     const check = await billing.check({ plans: [PLAN_MONTHLY], isTest: true });
     if (!check.hasActivePayment) {
@@ -40,21 +70,11 @@ export const loader = async ({ request }) => {
       });
     }
   } catch (e) {
-    // billing.request throws a redirect Response — that must propagate
-    if (e instanceof Response) throw e;
-    // Real API error — log full detail and let the merchant in (don't block features)
-    console.error(
-      "BILLING_ERROR_DETAIL:",
-      JSON.stringify({
-        message: e?.message,
-        code: e?.response?.code,
-        statusText: e?.response?.statusText,
-        body: e?.response?.body,
-      })
-    );
+    if (e instanceof Response) throw e; // billing.request redirect
+    console.error("BILLING_ERROR_DETAIL:", JSON.stringify({ message: e?.message, code: e?.response?.code, body: e?.response?.body }));
   }
 
-  // Load products for the image optimizer page
+  // 3) Products for the image optimizer page
   let products = [];
   if (url.pathname.includes("/product")) {
     try {
@@ -63,7 +83,7 @@ export const loader = async ({ request }) => {
       products = data?.products?.edges || [];
       console.log("PRODUCTS_OK:", products.length);
     } catch (e) {
-      console.error("PRODUCTS_ERROR:", JSON.stringify(e?.response?.body ?? e?.message));
+      console.error("PRODUCTS_ERROR:", e?.message ?? e);
     }
   }
 
