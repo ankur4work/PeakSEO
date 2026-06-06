@@ -31,10 +31,32 @@ const CREATE_SUBSCRIPTION = (returnUrl) => `
   }
 `;
 
+const PRODUCTS_QUERY = `{
+  products(first: 100) {
+    edges {
+      node {
+        id
+        title
+        media(first: 1) {
+          edges {
+            node {
+              ... on MediaImage {
+                id
+                image { url altText }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+
 export const loader = async ({ request }) => {
   const { session, admin } = await authenticate.admin(request);
+  const url = new URL(request.url);
 
-  // Check active subscription via admin.graphql (same mechanism as product loading)
+  // Billing check — same admin instance, no second authenticate.admin call
   let hasPlan = false;
   try {
     const res = await admin.graphql(CHECK_BILLING);
@@ -65,14 +87,28 @@ export const loader = async ({ request }) => {
     if (confirmationUrl) throw redirect(confirmationUrl);
   }
 
+  // Fetch products here if on product page — avoids second authenticate.admin in child loader
+  let products = [];
+  if (url.pathname.includes("/product")) {
+    try {
+      const res = await admin.graphql(PRODUCTS_QUERY);
+      const { data } = await res.json();
+      products = data?.products?.edges || [];
+      console.log("Products fetched:", products.length);
+    } catch (e) {
+      console.error("Products fetch failed:", e?.message ?? e);
+    }
+  }
+
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
     shop: session.shop,
+    products,
   };
 };
 
 export default function App() {
-  const { apiKey, shop } = useLoaderData();
+  const { apiKey, shop, products } = useLoaderData();
 
   return (
     <AppProvider embedded apiKey={apiKey}>
@@ -80,7 +116,7 @@ export default function App() {
         <s-link href={`/app/seo?shop=${shop}`}>Seo</s-link>
         <s-link href={`/app/product?shop=${shop}`}>Image-Optimizer</s-link>
       </s-app-nav>
-      <Outlet context={{ shop }} />
+      <Outlet context={{ shop, products }} />
     </AppProvider>
   );
 }

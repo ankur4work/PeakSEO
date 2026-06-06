@@ -1,27 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useOutletContext } from "react-router";
 
 export default function ProductsRoute() {
-  const { shop } = useOutletContext();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { shop, products: contextProducts } = useOutletContext();
+  const [products] = useState(contextProducts || []);
+  const [loading] = useState(false);
   const [loadingId, setLoadingId] = useState(null);
   const [message, setMessage] = useState(null);
   const [watermark, setWatermark] = useState(null);
-
-  useEffect(() => {
-    if (shop) fetchProducts();
-  }, [shop]);
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/fetch-products`);
-      const data = await res.json();
-      setProducts(data.products || []);
-    } catch (_) {}
-    finally { setLoading(false); }
-  };
 
   const handleClick = async (mediaId, imageSrc, type, productId) => {
     setLoadingId(mediaId);
@@ -38,7 +24,7 @@ export default function ProductsRoute() {
       const res = await fetch("/api/process-image", { method: "POST", body: formData });
       const data = await res.json();
       setMessage({ type: data.success ? "success" : "error", text: data.message });
-      if (data.success) setTimeout(fetchProducts, 2000);
+      if (data.success) setTimeout(() => window.location.reload(), 2000);
     } catch (err) {
       setMessage({ type: "error", text: err.message });
     } finally {
