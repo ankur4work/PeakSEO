@@ -7,9 +7,6 @@ embedded = true
 [access_scopes]
 scopes = "write_products,read_products,write_files,read_files"
 
-[access.admin]
-direct_api_mode = "online"
-
 [auth]
 redirect_urls = [
   "https://peakseo.onkra.online/auth/callback",
