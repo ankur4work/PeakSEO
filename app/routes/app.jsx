@@ -49,22 +49,20 @@ export const loader = async ({ request }) => {
 
   if (!hasPlan) {
     const returnUrl = `${process.env.SHOPIFY_APP_URL}/app`;
+    let confirmationUrl = null;
     try {
       const res = await admin.graphql(CREATE_SUBSCRIPTION(returnUrl));
       const { data } = await res.json();
-      const { confirmationUrl, userErrors } = data?.appSubscriptionCreate ?? {};
-      if (userErrors?.length) {
-        console.error("Subscription create errors:", userErrors);
-        // Allow access if subscription creation fails (config issue)
-        return { apiKey: process.env.SHOPIFY_API_KEY || "", shop: session.shop };
-      }
-      if (confirmationUrl) {
-        throw redirect(confirmationUrl);
+      const result = data?.appSubscriptionCreate ?? {};
+      if (result.userErrors?.length) {
+        console.error("Subscription create errors:", result.userErrors);
+      } else {
+        confirmationUrl = result.confirmationUrl ?? null;
       }
     } catch (e) {
-      if (e instanceof Response) throw e; // re-throw the redirect
       console.error("Subscription create failed:", e?.message ?? e);
     }
+    if (confirmationUrl) throw redirect(confirmationUrl);
   }
 
   return {
