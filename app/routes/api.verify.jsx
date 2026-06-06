@@ -12,7 +12,7 @@ export const loader = async ({ request }) => {
 
   try {
     // 1. Check DB for sessions
-    const sessions = await prisma.session.findMany({ take: 5 });
+    const sessions = await prisma.session.findMany({ take: 20 });
     const sessionCount = sessions.length;
     const shops = [...new Set(sessions.map(s => s.shop))];
 
@@ -20,14 +20,16 @@ export const loader = async ({ request }) => {
       return Response.json({ error: "No sessions in DB - app not installed on any store" });
     }
 
-    // 2. Use requested shop or most recent session
+    // 2. Use requested shop, prefer expiring tokens (newer) over non-expiring (older)
     const shopFilter = url.searchParams.get("shop");
     const filtered = shopFilter ? sessions.filter(s => s.shop === shopFilter) : sessions;
     const pool = filtered.length ? filtered : sessions;
+    // Sort: expiring tokens first (newer), then non-expiring (older)
     const session = pool.sort((a, b) => {
-      const aExp = a.expires ? new Date(a.expires) : new Date(9999, 0);
-      const bExp = b.expires ? new Date(b.expires) : new Date(9999, 0);
-      return bExp - aExp;
+      if (a.expires && !b.expires) return -1;
+      if (!a.expires && b.expires) return 1;
+      if (a.expires && b.expires) return new Date(b.expires) - new Date(a.expires);
+      return 0;
     })[0];
 
     const { shop, accessToken, expires } = session;
@@ -68,15 +70,18 @@ export const loader = async ({ request }) => {
       shops,
       activeShop: shop,
       tokenExpires: expires,
+      tokenIsExpiring: !!expires,
       products: {
         count: products.length,
         titles: products,
         error: productsError,
+        rawErrors: productsJson.errors ?? null,
       },
       billing: {
         activeSubscriptions: subscriptions,
         hasPlan: subscriptions.some(s => s.status === "ACTIVE"),
         error: billingError,
+        rawErrors: billingJson.errors ?? null,
       },
     });
   } catch (err) {
