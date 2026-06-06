@@ -1,52 +1,26 @@
-import { useState } from "react";
-import { useOutletContext, useLoaderData } from "react-router";
-import { authenticate } from "../shopify.server";
-
-const PRODUCTS_QUERY = `
-  {
-    products(first: 100) {
-      edges {
-        node {
-          id
-          title
-          media(first: 1) {
-            edges {
-              node {
-                ... on MediaImage {
-                  id
-                  image { url altText }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const res = await admin.graphql(PRODUCTS_QUERY);
-  const { data } = await res.json();
-  return { products: data?.products?.edges || [] };
-};
+import { useState, useEffect } from "react";
+import { useOutletContext } from "react-router";
 
 export default function ProductsRoute() {
   const { shop } = useOutletContext();
-  const { products: initialProducts } = useLoaderData();
-  const [products, setProducts] = useState(initialProducts);
-  const [loading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [loadingId, setLoadingId] = useState(null);
   const [message, setMessage] = useState(null);
   const [watermark, setWatermark] = useState(null);
 
+  useEffect(() => {
+    if (shop) fetchProducts();
+  }, [shop]);
+
   const fetchProducts = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`/api/fetch-products?shop=${shop}`);
+      const res = await fetch(`/api/fetch-products`);
       const data = await res.json();
-      if (data.products?.length) setProducts(data.products);
+      setProducts(data.products || []);
     } catch (_) {}
+    finally { setLoading(false); }
   };
 
   const handleClick = async (mediaId, imageSrc, type, productId) => {
