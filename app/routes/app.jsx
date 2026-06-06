@@ -1,38 +1,75 @@
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useRouteError, redirect } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { authenticate, PLAN_MONTHLY } from "../shopify.server";
+import { authenticate } from "../shopify.server";
+
+const CHECK_BILLING = `{
+  currentAppInstallation {
+    activeSubscriptions { id name status }
+  }
+}`;
+
+const CREATE_SUBSCRIPTION = (returnUrl) => `
+  mutation {
+    appSubscriptionCreate(
+      name: "PeakSEO Monthly"
+      returnUrl: "${returnUrl}"
+      test: true
+      lineItems: [{
+        plan: {
+          appRecurringPricingDetails: {
+            price: { amount: "30.00", currencyCode: USD }
+            interval: EVERY_30_DAYS
+          }
+        }
+      }]
+    ) {
+      appSubscription { id status }
+      confirmationUrl
+      userErrors { field message }
+    }
+  }
+`;
 
 export const loader = async ({ request }) => {
-  const { session, billing } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
 
+  // Check active subscription via admin.graphql (same mechanism as product loading)
   let hasPlan = false;
   try {
-    const { hasActivePayment } = await billing.check({
-      plans: [PLAN_MONTHLY],
-      isTest: true,
-    });
-    hasPlan = hasActivePayment;
-
-    if (!hasActivePayment) {
-      await billing.request({
-        plan: PLAN_MONTHLY,
-        isTest: true,
-        returnUrl: `${process.env.SHOPIFY_APP_URL}/app`,
-      });
-    }
+    const res = await admin.graphql(CHECK_BILLING);
+    const { data } = await res.json();
+    const active = data?.currentAppInstallation?.activeSubscriptions ?? [];
+    hasPlan = active.some(s => s.status === "ACTIVE");
+    console.log("Billing check — active subs:", active.length, "hasPlan:", hasPlan);
   } catch (e) {
-    // billing.request() throws a redirect — let it propagate
-    if (e instanceof Response) throw e;
-    // Any other error (403 on fresh install) — allow access, merchant must reinstall
-    console.error("Billing error:", e?.message ?? e);
-    hasPlan = true;
+    console.error("Billing check failed:", e?.message ?? e);
+    hasPlan = false;
+  }
+
+  if (!hasPlan) {
+    const returnUrl = `${process.env.SHOPIFY_APP_URL}/app`;
+    try {
+      const res = await admin.graphql(CREATE_SUBSCRIPTION(returnUrl));
+      const { data } = await res.json();
+      const { confirmationUrl, userErrors } = data?.appSubscriptionCreate ?? {};
+      if (userErrors?.length) {
+        console.error("Subscription create errors:", userErrors);
+        // Allow access if subscription creation fails (config issue)
+        return { apiKey: process.env.SHOPIFY_API_KEY || "", shop: session.shop };
+      }
+      if (confirmationUrl) {
+        throw redirect(confirmationUrl);
+      }
+    } catch (e) {
+      if (e instanceof Response) throw e; // re-throw the redirect
+      console.error("Subscription create failed:", e?.message ?? e);
+    }
   }
 
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
     shop: session.shop,
-    hasPlan,
   };
 };
 
