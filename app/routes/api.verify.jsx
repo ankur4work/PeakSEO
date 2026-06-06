@@ -20,8 +20,11 @@ export const loader = async ({ request }) => {
       return Response.json({ error: "No sessions in DB - app not installed on any store" });
     }
 
-    // 2. Use most recent non-expired session
-    const session = sessions.sort((a, b) => {
+    // 2. Use requested shop or most recent session
+    const shopFilter = url.searchParams.get("shop");
+    const filtered = shopFilter ? sessions.filter(s => s.shop === shopFilter) : sessions;
+    const pool = filtered.length ? filtered : sessions;
+    const session = pool.sort((a, b) => {
       const aExp = a.expires ? new Date(a.expires) : new Date(9999, 0);
       const bExp = b.expires ? new Date(b.expires) : new Date(9999, 0);
       return bExp - aExp;
