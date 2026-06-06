@@ -28,32 +28,42 @@ export const loader = async ({ request }) => {
   const { session, admin, billing } = await authenticate.admin(request);
   const url = new URL(request.url);
 
-  // Gate the app behind an active $30/month subscription.
-  // billing.require() checks for an active payment; on failure it calls
-  // billing.request() which throws a redirect that breaks OUT of the iframe
-  // (via /auth/exit-iframe) to the Shopify-hosted billing confirmation page.
-  await billing.require({
-    plans: [PLAN_MONTHLY],
-    isTest: true,
-    onFailure: async () =>
-      billing.request({
+  // Billing gate — but NEVER crash the app if the billing API errors.
+  // Capture the full error so we can diagnose the 403.
+  try {
+    const check = await billing.check({ plans: [PLAN_MONTHLY], isTest: true });
+    if (!check.hasActivePayment) {
+      await billing.request({
         plan: PLAN_MONTHLY,
         isTest: true,
         returnUrl: `${process.env.SHOPIFY_APP_URL}/app`,
-      }),
-  });
+      });
+    }
+  } catch (e) {
+    // billing.request throws a redirect Response — that must propagate
+    if (e instanceof Response) throw e;
+    // Real API error — log full detail and let the merchant in (don't block features)
+    console.error(
+      "BILLING_ERROR_DETAIL:",
+      JSON.stringify({
+        message: e?.message,
+        code: e?.response?.code,
+        statusText: e?.response?.statusText,
+        body: e?.response?.body,
+      })
+    );
+  }
 
-  // Fetch products in this single authenticated loader (avoids a second
-  // authenticate.admin call in the child route, which caused 403 races).
+  // Load products for the image optimizer page
   let products = [];
   if (url.pathname.includes("/product")) {
     try {
       const res = await admin.graphql(PRODUCTS_QUERY);
       const { data } = await res.json();
       products = data?.products?.edges || [];
-      console.log("Products fetched:", products.length);
+      console.log("PRODUCTS_OK:", products.length);
     } catch (e) {
-      console.error("Products fetch failed:", e?.message ?? e);
+      console.error("PRODUCTS_ERROR:", JSON.stringify(e?.response?.body ?? e?.message));
     }
   }
 
