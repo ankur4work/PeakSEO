@@ -1,35 +1,7 @@
-import { Outlet, useLoaderData, useRouteError, redirect } from "react-router";
+import { Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { authenticate } from "../shopify.server";
-
-const CHECK_BILLING = `{
-  currentAppInstallation {
-    activeSubscriptions { id name status }
-  }
-}`;
-
-const CREATE_SUBSCRIPTION = (returnUrl) => `
-  mutation {
-    appSubscriptionCreate(
-      name: "PeakSEO Monthly"
-      returnUrl: "${returnUrl}"
-      test: true
-      lineItems: [{
-        plan: {
-          appRecurringPricingDetails: {
-            price: { amount: "30.00", currencyCode: USD }
-            interval: EVERY_30_DAYS
-          }
-        }
-      }]
-    ) {
-      appSubscription { id status }
-      confirmationUrl
-      userErrors { field message }
-    }
-  }
-`;
+import { authenticate, PLAN_MONTHLY } from "../shopify.server";
 
 const PRODUCTS_QUERY = `{
   products(first: 100) {
@@ -53,41 +25,26 @@ const PRODUCTS_QUERY = `{
 }`;
 
 export const loader = async ({ request }) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session, admin, billing } = await authenticate.admin(request);
   const url = new URL(request.url);
 
-  // Billing check — same admin instance, no second authenticate.admin call
-  let hasPlan = false;
-  try {
-    const res = await admin.graphql(CHECK_BILLING);
-    const { data } = await res.json();
-    const active = data?.currentAppInstallation?.activeSubscriptions ?? [];
-    hasPlan = active.some(s => s.status === "ACTIVE");
-    console.log("Billing check — active subs:", active.length, "hasPlan:", hasPlan);
-  } catch (e) {
-    console.error("Billing check failed:", e?.message ?? e);
-    hasPlan = false;
-  }
+  // Gate the app behind an active $30/month subscription.
+  // billing.require() checks for an active payment; on failure it calls
+  // billing.request() which throws a redirect that breaks OUT of the iframe
+  // (via /auth/exit-iframe) to the Shopify-hosted billing confirmation page.
+  await billing.require({
+    plans: [PLAN_MONTHLY],
+    isTest: true,
+    onFailure: async () =>
+      billing.request({
+        plan: PLAN_MONTHLY,
+        isTest: true,
+        returnUrl: `${process.env.SHOPIFY_APP_URL}/app`,
+      }),
+  });
 
-  if (!hasPlan) {
-    const returnUrl = `${process.env.SHOPIFY_APP_URL}/app`;
-    let confirmationUrl = null;
-    try {
-      const res = await admin.graphql(CREATE_SUBSCRIPTION(returnUrl));
-      const { data } = await res.json();
-      const result = data?.appSubscriptionCreate ?? {};
-      if (result.userErrors?.length) {
-        console.error("Subscription create errors:", result.userErrors);
-      } else {
-        confirmationUrl = result.confirmationUrl ?? null;
-      }
-    } catch (e) {
-      console.error("Subscription create failed:", e?.message ?? e);
-    }
-    if (confirmationUrl) throw redirect(confirmationUrl);
-  }
-
-  // Fetch products here if on product page — avoids second authenticate.admin in child loader
+  // Fetch products in this single authenticated loader (avoids a second
+  // authenticate.admin call in the child route, which caused 403 races).
   let products = [];
   if (url.pathname.includes("/product")) {
     try {
