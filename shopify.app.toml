@@ -6,6 +6,7 @@ embedded = true
 
 [access_scopes]
 scopes = "write_products,read_products,write_files,read_files"
+use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
